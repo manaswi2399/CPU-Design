@@ -1,0 +1,120 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <stdbool.h>
+
+#define MEMORY_SIZE 256
+#define REGISTER_COUNT 16
+
+// Memory and Registers
+uint16_t memory[MEMORY_SIZE];
+uint16_t registers[REGISTER_COUNT];
+uint16_t pc = 0; // Program Counter
+
+// Instruction Set Opcodes
+enum {
+    ADD = 0x1,
+    SUB = 0x2,
+    MUL = 0x3,
+    DIV = 0x4,
+    AND = 0x5,
+    OR  = 0x7,
+    XOR = 0x6,
+    NOT = 0x8,
+    SLL = 0x9,
+    SRL = 0xA,
+    EQ  = 0xB,
+    NE  = 0xC,
+    LT  = 0xD,
+    GT  = 0xE,
+    LE  = 0xF,
+    GE  = 0x10,
+    LI  = 0x11,
+    FETCH = 0x12,
+    STORE = 0x13,
+    JUMP  = 0x14,
+    HALT  = 0x15
+};
+
+// Fetch the next instruction
+uint16_t fetch() {
+    return memory[pc++];
+}
+
+// Decode and execute an instruction
+void execute(uint16_t instruction) {
+    uint16_t opcode = (instruction >> 11) & 0x1F; // Top 5 bits for opcode
+    uint16_t rd = (instruction >> 8) & 0x7;      // Destination register
+    uint16_t rs1 = (instruction >> 4) & 0xF;     // Source register 1
+    uint16_t rs2 = instruction & 0xF;            // Source register 2 or immediate value
+
+    printf("Instruction: 0x%04x, Opcode: 0x%x, RD: %x, RS1: %x, RS2: %x\n",
+           instruction, opcode, rd, rs1, rs2);
+
+    switch (opcode) {
+        case ADD:
+            registers[rd] = registers[rs1] + registers[rs2];
+            break;
+        case SUB:
+            registers[rd] = registers[rs1] - registers[rs2];
+            break;
+        case MUL:
+            registers[rd] = registers[rs1] * registers[rs2];
+            break;
+        case DIV:
+            registers[rd] = registers[rs1] / registers[rs2];
+            break;
+        case OR:
+            registers[rd] = registers[rs1] | registers[rs2];
+            break;
+        case LI:
+            registers[rd] = (rs1 << 4) | rs2;
+            break;
+        case HALT:
+            printf("HALT encountered. Stopping execution.\n");
+            pc = MEMORY_SIZE;
+            break;
+        default:
+            printf("Unknown opcode: 0x%x\n", opcode);
+            pc = MEMORY_SIZE;
+            break;
+    }
+}
+
+// Load program into memory
+void load_program() {
+    memory[0] = (uint16_t)((LI << 11) | (1 << 8) | 5);          // LI R1, 5
+    memory[1] = (uint16_t)((LI << 11) | (2 << 8) | 10);         // LI R2, 10
+    memory[2] = (uint16_t)((ADD << 11) | (3 << 8) | (1 << 4) | 2); // ADD R3, R1, R2
+    memory[3] = (uint16_t)((SUB << 11) | (4 << 8) | (2 << 4) | 1); // SUB R4, R2, R1
+    memory[4] = (uint16_t)((MUL << 11) | (5 << 8) | (1 << 4) | 2); // MUL R5, R1, R2
+    memory[5] = (uint16_t)((DIV << 11) | (6 << 8) | (2 << 4) | 1); // DIV R6, R2, R1
+    memory[6] = (uint16_t)((HALT << 11));                       // HALT
+}
+
+// Run the program
+void run_program() {
+    printf("Starting program execution...\n");
+    while (pc < MEMORY_SIZE) {
+        uint16_t instruction = fetch();
+        execute(instruction);
+    }
+}
+
+int main() {
+    // Initialize memory and registers
+    for (int i = 0; i < MEMORY_SIZE; i++) memory[i] = 0;
+    for (int i = 0; i < REGISTER_COUNT; i++) registers[i] = 0;
+
+    // Load program into memory
+    load_program();
+
+    // Run the program
+    run_program();
+
+    printf("Value in R3: %04x (decimal: %d)\n", registers[3], registers[3]);
+    printf("Value in R4: %04x (decimal: %d)\n", registers[4], registers[4]);
+    printf("Value in R5: %04x (decimal: %d)\n", registers[5], registers[5]);
+    printf("Value in R6: %04x (decimal: %d)\n", registers[6], registers[6]);
+
+    return 0;
+}
